@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { QrCode, ArrowRight, ExternalLink, Copy, CheckCircle2 } from "lucide-react"
 import { getWorkerBalance } from "@/lib/xrpl-service"
+import { DIDVerification } from "@/components/did-verification"
 
 export default function WorkerDashboard() {
   const [copied, setCopied] = useState(false)
@@ -123,6 +124,7 @@ export default function WorkerDashboard() {
         <TabsList>
           <TabsTrigger value="history">Transaction History</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
+          <TabsTrigger value="did">DID Verification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="history">
@@ -208,6 +210,9 @@ export default function WorkerDashboard() {
               <Button variant="outline">Schedule an Appointment</Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+        <TabsContent value="did">
+          <DIDVerification />
         </TabsContent>
       </Tabs>
     </div>

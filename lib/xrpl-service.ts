@@ -1,4 +1,5 @@
-// Mock Implementation of code for now
+// This is a mock implementation of the XRPL service
+// In a real application, this would interact with the XRP Ledger using xrpl.js
 
 // Types
 interface HealthCreditIssueParams {
@@ -25,13 +26,12 @@ const XRPL_TESTNET_URL = "wss://s.altnet.rippletest.net:51233"
 // Mock wallet addresses for demo
 const ISSUER_WALLET = {
   address: "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
-  secret: "snoPBrXtMeMyMHUVTgbuqAfg1SUTb", // This is a test secret not to be used in productiongit init
-
+  secret: "snoPBrXtMeMyMHUVTgbuqAfg1SUTb", // This is a test secret, never use in production
 }
 
 const CLINIC_WALLET = {
   address: "rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH",
-  secret: "sn3nxiW7v8KXzPzAqzyHXbSSKNuN9", // This is a test secret not to be used in production
+  secret: "sn3nxiW7v8KXzPzAqzyHXbSSKNuN9", // This is a test secret, never use in production
 }
 
 // Mock DID verification system
@@ -42,6 +42,7 @@ interface DIDDocument {
   publicKey: string
 }
 
+// Add more comprehensive DID registry with additional users
 const mockDIDRegistry: Record<string, DIDDocument> = {
   [ISSUER_WALLET.address]: {
     id: "did:xrpl:issuer:1",
@@ -54,6 +55,19 @@ const mockDIDRegistry: Record<string, DIDDocument> = {
     type: "clinic",
     verified: true,
     publicKey: "ed25519:DEF456",
+  },
+  // Add worker DIDs
+  rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe: {
+    id: "did:xrpl:worker:1",
+    type: "worker",
+    verified: true,
+    publicKey: "ed25519:GHI789",
+  },
+  rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH: {
+    id: "did:xrpl:worker:2",
+    type: "worker",
+    verified: false, // Unverified worker for demo
+    publicKey: "ed25519:JKL012",
   },
 }
 
