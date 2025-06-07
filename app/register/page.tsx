@@ -29,9 +29,15 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="container flex-1 flex items-center justify-center py-12">
-        <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-white to-emerald-50 dark:from-gray-950 dark:to-gray-900">
+      <div className="w-full flex flex-col items-center justify-center py-8">
+        <Link href="/" className="mb-6">
+          <Button variant="ghost" className="flex items-center gap-2 text-emerald-700 text-base font-medium">
+            <ArrowLeft className="h-5 w-5" />
+            Back to home
+          </Button>
+        </Link>
+        <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <Shield className="h-6 w-6 text-emerald-600" />
@@ -110,12 +116,6 @@ export default function Register() {
             </CardFooter>
           </form>
         </Card>
-      </div>
-      <div className="container py-4">
-        <Link href="/" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to home
-        </Link>
       </div>
     </div>
   )
