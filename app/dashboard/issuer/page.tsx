@@ -11,11 +11,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Users, PlusCircle, Search, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react"
 import { issueHealthCredits } from "@/lib/xrpl-service"
+import WalletConnector from "@/components/wallet-connector"
 
 export default function IssuerDashboard() {
   const [issuingCredits, setIssuingCredits] = useState(false)
   const [issueSuccess, setIssueSuccess] = useState<boolean | null>(null)
   const [transactionId, setTransactionId] = useState("")
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   const handleIssueCredits = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,6 +44,7 @@ export default function IssuerDashboard() {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-6">Issuer Dashboard</h1>
+      {!walletAddress && <WalletConnector onConnected={setWalletAddress} />}
 
       <div className="grid gap-6 md:grid-cols-3 mb-8">
         <Card>

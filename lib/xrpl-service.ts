@@ -1,4 +1,5 @@
-// Mock Implementation of code for now
+import { Client, Wallet } from "xrpl"
+
 
 // Types
 interface HealthCreditIssueParams {
@@ -19,19 +20,18 @@ interface TransactionResult {
   message?: string
 }
 
-// Mock XRPL client configuration
+// XRPL client configuration
 const XRPL_TESTNET_URL = "wss://s.altnet.rippletest.net:51233"
 
-// Mock wallet addresses for demo
+// Issuer wallet (testnet credentials for demo purposes)
 const ISSUER_WALLET = {
   address: "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
-  secret: "snoPBrXtMeMyMHUVTgbuqAfg1SUTb", // This is a test secret not to be used in productiongit init
-
+  secret: "snoPBrXtMeMyMHUVTgbuqAfg1SUTb",
 }
 
 const CLINIC_WALLET = {
   address: "rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH",
-  secret: "sn3nxiW7v8KXzPzAqzyHXbSSKNuN9", // This is a test secret not to be used in production
+  secret: "sn3nxiW7v8KXzPzAqzyHXbSSKNuN9",
 }
 
 // Mock DID verification system
@@ -57,103 +57,92 @@ const mockDIDRegistry: Record<string, DIDDocument> = {
   },
 }
 
-// Mock function to simulate XRPL transaction
-async function simulateXRPLTransaction(type: "issue" | "redeem", params: any): Promise<TransactionResult> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  // Generate mock transaction ID
-  const transactionId = `tx_${Math.random().toString(36).substring(2, 15)}`
-
-  console.log(`[XRPL Service] ${type} transaction:`, {
-    transactionId,
-    params,
-    timestamp: new Date().toISOString(),
-  })
-
-  return {
-    transactionId,
-    success: true,
-    message: `${type} transaction completed successfully`,
-  }
-}
 
 // Issue health credits to a worker
 export async function issueHealthCredits(params: HealthCreditIssueParams): Promise<TransactionResult> {
+  const client = await initializeXRPLClient()
   try {
-    // Verify issuer DID (mock)
-    const issuerDID = mockDIDRegistry[ISSUER_WALLET.address]
-    if (!issuerDID || !issuerDID.verified) {
-      throw new Error("Issuer not verified")
+    const issuerWallet = Wallet.fromSecret(ISSUER_WALLET.secret)
+    const transaction = {
+      TransactionType: "Payment",
+      Account: issuerWallet.address,
+      Destination: params.recipientAddress,
+      Amount: {
+        currency: "HC",
+        value: params.amount.toString(),
+        issuer: issuerWallet.address,
+      },
+      Memos: [
+        {
+          Memo: {
+            MemoData: Buffer.from(params.memo || "").toString("hex"),
+          },
+        },
+      ],
     }
-
-    // In a real implementation, this would:
-    // 1. Connect to XRPL testnet
-    // 2. Create a token issuance transaction
-    // 3. Sign and submit the transaction
-    // 4. Wait for validation
-
-    const result = await simulateXRPLTransaction("issue", {
-      from: ISSUER_WALLET.address,
-      to: params.recipientAddress,
-      amount: params.amount,
-      memo: params.memo,
-      tokenType: "HealthCredit",
-    })
-
-    return result
-  } catch (error) {
-    console.error("Failed to issue health credits:", error)
-    throw error
+    const prepared = await client.autofill(transaction)
+    const signed = issuerWallet.sign(prepared)
+    const result = await client.submitAndWait(signed.tx_blob)
+    return {
+      transactionId: result.result.hash,
+      success: result.result.meta.TransactionResult === "tesSUCCESS",
+      message: "Transaction completed",
+    }
+  } finally {
+    client.disconnect()
   }
 }
 
 // Redeem health credits at a clinic
 export async function redeemHealthCredits(params: HealthCreditRedeemParams): Promise<TransactionResult> {
+  const client = await initializeXRPLClient()
   try {
-    // Verify clinic DID (mock)
-    const clinicDID = mockDIDRegistry[CLINIC_WALLET.address]
-    if (!clinicDID || !clinicDID.verified) {
-      throw new Error("Clinic not verified")
+    const clinicWallet = Wallet.fromSecret(CLINIC_WALLET.secret)
+    const transaction = {
+      TransactionType: "Payment",
+      Account: params.patientAddress,
+      Destination: clinicWallet.address,
+      Amount: {
+        currency: "HC",
+        value: params.amount.toString(),
+        issuer: ISSUER_WALLET.address,
+      },
+      Memos: [
+        {
+          Memo: {
+            MemoData: Buffer.from(params.serviceDescription).toString("hex"),
+          },
+        },
+      ],
     }
-
-    // In a real implementation, this would:
-    // 1. Connect to XRPL testnet
-    // 2. Create a token redemption transaction
-    // 3. Transfer tokens from patient to clinic
-    // 4. Convert to RLUSD or burn tokens
-    // 5. Sign and submit the transaction
-
-    const result = await simulateXRPLTransaction("redeem", {
-      from: params.patientAddress,
-      to: CLINIC_WALLET.address,
-      amount: params.amount,
-      service: params.serviceDescription,
-      tokenType: "HealthCredit",
-    })
-
-    return result
-  } catch (error) {
-    console.error("Failed to redeem health credits:", error)
-    throw error
+    const prepared = await client.autofill(transaction)
+    const signed = clinicWallet.sign(prepared)
+    const result = await client.submitAndWait(signed.tx_blob)
+    return {
+      transactionId: result.result.hash,
+      success: result.result.meta.TransactionResult === "tesSUCCESS",
+      message: "Transaction completed",
+    }
+  } finally {
+    client.disconnect()
   }
 }
 
 // Get worker's health credit balance
 export async function getWorkerBalance(walletAddress: string): Promise<number> {
+  const client = await initializeXRPLClient()
   try {
-    // In a real implementation, this would query the XRPL for token balance
-    // For now, return a mock balance
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    console.log(`[XRPL Service] Getting balance for ${walletAddress}`)
-
-    // Mock balance based on wallet address
-    const mockBalance = 350 // HC
-    return mockBalance
-  } catch (error) {
-    console.error("Failed to get worker balance:", error)
-    throw error
+    const response = await client.request({
+      command: "account_lines",
+      account: walletAddress,
+      ledger_index: "validated",
+    })
+    const line = response.result.lines.find(
+      (l: any) => l.currency === "HC" && l.account === ISSUER_WALLET.address
+    )
+    return line ? parseFloat(line.balance) : 0
+  } finally {
+    client.disconnect()
   }
 }
 
@@ -174,61 +163,25 @@ export async function verifyDID(walletAddress: string): Promise<DIDDocument | nu
 
 // Get transaction history for an address
 export async function getTransactionHistory(walletAddress: string): Promise<any[]> {
+  const client = await initializeXRPLClient()
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Mock transaction history
-    const mockTransactions = [
-      {
-        id: "tx_abc123",
-        date: new Date(2025, 5, 5),
-        type: "received",
-        from: ISSUER_WALLET.address,
-        amount: 200,
-        status: "confirmed",
-      },
-      {
-        id: "tx_def456",
-        date: new Date(2025, 5, 3),
-        type: "spent",
-        to: CLINIC_WALLET.address,
-        amount: 50,
-        status: "confirmed",
-      },
-    ]
-
-    console.log(`[XRPL Service] Getting transaction history for ${walletAddress}`)
-
-    return mockTransactions
-  } catch (error) {
-    console.error("Failed to get transaction history:", error)
-    throw error
+    const response = await client.request({
+      command: "account_tx",
+      account: walletAddress,
+      ledger_index_min: -1,
+      ledger_index_max: -1,
+    })
+    return response.result.transactions
+  } finally {
+    client.disconnect()
   }
 }
 
-// Initialize XRPL connection (mock for MVP)
-export async function initializeXRPLClient(): Promise<any> {
-  // Mock XRPL client for demo purposes
-  const mockClient = {
-    connect: async () => {
-      console.log("[XRPL Service] Mock connection to XRPL testnet")
-      return Promise.resolve()
-    },
-    disconnect: async () => {
-      console.log("[XRPL Service] Mock disconnection from XRPL testnet")
-      return Promise.resolve()
-    },
-    isConnected: () => true,
-  }
-
-  try {
-    await mockClient.connect()
-    console.log("[XRPL Service] Connected to XRPL testnet (mock)")
-    return mockClient
-  } catch (error) {
-    console.error("Failed to connect to XRPL:", error)
-    throw error
-  }
+// Initialize XRPL connection
+export async function initializeXRPLClient(): Promise<Client> {
+  const client = new Client(XRPL_TESTNET_URL)
+  await client.connect()
+  return client
 }
 
 // Export constants for use in other parts of the app

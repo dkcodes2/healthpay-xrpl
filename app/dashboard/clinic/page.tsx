@@ -9,13 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CreditCard, Users, QrCode, Search, CheckCircle2, AlertCircle, ArrowRight, ExternalLink } from "lucide-react"
+import { CreditCard, Users, Search, CheckCircle2, AlertCircle, ArrowRight, ExternalLink } from "lucide-react"
+import { QRCodeSVG } from "qrcode.react"
 import { redeemHealthCredits } from "@/lib/xrpl-service"
+import WalletConnector from "@/components/wallet-connector"
 
 export default function ClinicDashboard() {
   const [redeeming, setRedeeming] = useState(false)
   const [redeemSuccess, setRedeemSuccess] = useState<boolean | null>(null)
   const [transactionId, setTransactionId] = useState("")
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   const handleRedeemCredits = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,7 +27,7 @@ export default function ClinicDashboard() {
     try {
       // Call the XRPL service to redeem health credits
       const result = await redeemHealthCredits({
-        patientAddress: "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe", // Example address
+        patientAddress: walletAddress || "",
         amount: 50,
         serviceDescription: "General consultation",
       })
@@ -42,6 +45,7 @@ export default function ClinicDashboard() {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-6">Clinic Dashboard</h1>
+      {!walletAddress && <WalletConnector onConnected={setWalletAddress} />}
 
       <div className="grid gap-6 md:grid-cols-3 mb-8">
         <Card>
@@ -96,7 +100,7 @@ export default function ClinicDashboard() {
                   <div className="flex gap-2">
                     <Input id="patient" placeholder="Enter patient's wallet address" />
                     <Button variant="outline" type="button" size="icon">
-                      <QrCode className="h-4 w-4" />
+                      <QRCodeSVG value={walletAddress || ""} size={16} />
                     </Button>
                   </div>
                 </div>
@@ -155,7 +159,7 @@ export default function ClinicDashboard() {
             </CardHeader>
             <CardContent className="flex justify-center">
               <div className="bg-white p-4 rounded-md border">
-                <QrCode className="h-48 w-48 text-gray-800" />
+                <QRCodeSVG value={walletAddress || ""} size={192} />
               </div>
             </CardContent>
           </Card>

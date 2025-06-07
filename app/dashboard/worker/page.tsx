@@ -5,16 +5,18 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { QrCode, ArrowRight, ExternalLink, Copy, CheckCircle2 } from "lucide-react"
+import { ArrowRight, ExternalLink, Copy, CheckCircle2 } from "lucide-react"
+import { QRCodeSVG } from "qrcode.react"
 import { getWorkerBalance } from "@/lib/xrpl-service"
+import WalletConnector from "@/components/wallet-connector"
 
 export default function WorkerDashboard() {
   const [copied, setCopied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-
-  const walletAddress = "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   const copyToClipboard = () => {
+    if (!walletAddress) return
     navigator.clipboard.writeText(walletAddress)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -24,7 +26,9 @@ export default function WorkerDashboard() {
     setRefreshing(true)
     try {
       // Call the XRPL service to get the latest balance
-      await getWorkerBalance(walletAddress)
+      if (walletAddress) {
+        await getWorkerBalance(walletAddress)
+      }
       // Balance would be updated in a real app
     } catch (error) {
       console.error("Failed to refresh balance:", error)
@@ -36,6 +40,7 @@ export default function WorkerDashboard() {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-6">Worker Dashboard</h1>
+      {!walletAddress && <WalletConnector onConnected={setWalletAddress} />}
 
       <div className="grid gap-6 md:grid-cols-2 mb-8">
         <Card className="md:col-span-2">
@@ -61,26 +66,28 @@ export default function WorkerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-              <div className="font-mono text-sm truncate flex-1">{walletAddress}</div>
+              <div className="font-mono text-sm truncate flex-1">{walletAddress || "Not connected"}</div>
               <Button variant="ghost" size="icon" onClick={copyToClipboard} className="h-8 w-8">
                 {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
             <div className="mt-4 flex justify-center">
               <div className="bg-white p-2 rounded-md border">
-                <QrCode className="h-32 w-32 text-gray-800" />
+                <QRCodeSVG value={walletAddress || ""} size={128} />
               </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Link
-              href={`https://testnet.xrpl.org/accounts/${walletAddress}`}
-              target="_blank"
-              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
-            >
-              View on XRPL Explorer
-              <ExternalLink className="h-3 w-3" />
-            </Link>
+            {walletAddress && (
+              <Link
+                href={`https://testnet.xrpl.org/accounts/${walletAddress}`}
+                target="_blank"
+                className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
+              >
+                View on XRPL Explorer
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            )}
           </CardFooter>
         </Card>
 
@@ -179,14 +186,16 @@ export default function WorkerDashboard() {
               </div>
             </CardContent>
             <CardFooter>
-              <Link
-                href={`https://testnet.xrpl.org/accounts/${walletAddress}`}
-                target="_blank"
-                className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
-              >
-                View all transactions on XRPL Explorer
-                <ExternalLink className="h-3 w-3" />
-              </Link>
+              {walletAddress && (
+                <Link
+                  href={`https://testnet.xrpl.org/accounts/${walletAddress}`}
+                  target="_blank"
+                  className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
+                >
+                  View all transactions on XRPL Explorer
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
             </CardFooter>
           </Card>
         </TabsContent>
