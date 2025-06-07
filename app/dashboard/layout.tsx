@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container mx-auto flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl">
             <Shield className="h-6 w-6 text-emerald-600" />
             <Link href="/">HealthPay</Link>
@@ -20,9 +20,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 container mx-auto px-4 py-8">
+        {children}
+      </main>
       <footer className="border-t py-4">
-        <div className="container flex justify-between items-center">
+        <div className="container mx-auto flex justify-between items-center">
           <p className="text-sm text-gray-500">© 2025 HealthPay. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link href="#" className="text-sm text-gray-500 hover:underline">
