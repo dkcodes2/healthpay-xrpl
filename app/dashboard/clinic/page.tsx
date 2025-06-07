@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Users, QrCode, Search, CheckCircle2, AlertCircle, ArrowRight, ExternalLink } from "lucide-react"
 import { redeemHealthCredits } from "@/lib/xrpl-service"
+import { DIDVerification } from "@/components/did-verification"
 
 export default function ClinicDashboard() {
   const [redeeming, setRedeeming] = useState(false)
@@ -80,6 +81,7 @@ export default function ClinicDashboard() {
         <TabsList>
           <TabsTrigger value="redeem">Redeem Credits</TabsTrigger>
           <TabsTrigger value="patients">Patient Records</TabsTrigger>
+          <TabsTrigger value="did">DID Verification</TabsTrigger>
           <TabsTrigger value="transactions">Transaction History</TabsTrigger>
         </TabsList>
 
@@ -194,6 +196,10 @@ export default function ClinicDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="did">
+          <DIDVerification />
         </TabsContent>
 
         <TabsContent value="transactions">

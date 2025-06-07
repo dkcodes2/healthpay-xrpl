@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Users, PlusCircle, Search, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react"
 import { issueHealthCredits } from "@/lib/xrpl-service"
+import { DIDVerification } from "@/components/did-verification"
 
 export default function IssuerDashboard() {
   const [issuingCredits, setIssuingCredits] = useState(false)
@@ -80,6 +81,7 @@ export default function IssuerDashboard() {
         <TabsList>
           <TabsTrigger value="issue">Issue Credits</TabsTrigger>
           <TabsTrigger value="beneficiaries">Manage Beneficiaries</TabsTrigger>
+          <TabsTrigger value="did">DID Verification</TabsTrigger>
           <TabsTrigger value="transactions">Transaction History</TabsTrigger>
         </TabsList>
 
@@ -203,6 +205,10 @@ export default function IssuerDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="did">
+          <DIDVerification />
         </TabsContent>
 
         <TabsContent value="transactions">
