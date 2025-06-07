@@ -20,13 +20,23 @@ interface TransactionResult {
 }
 
 // Mock XRPL client configuration
-const XRPL_TESTNET_URL = "wss://s.altnet.rippletest.net:51233"
+const XRPL_WS = process.env.XRPL_ENDPOINT || 'wss://s.altnet.rippletest.net:51233';
+let client: Client | null = null;
+
+export async function getClient(): Promise<Client> {
+  if (!client) {
+    client = new Client(XRPL_WS);
+    await client.connect();
+  } else if (!client.isConnected()) {
+    await client.connect();
+  }
+  return client;
+}
 
 // Mock wallet addresses for demo
 const ISSUER_WALLET = {
   address: "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
   secret: "snoPBrXtMeMyMHUVTgbuqAfg1SUTb", // This is a test secret not to be used in productiongit init
-
 }
 
 const CLINIC_WALLET = {
@@ -57,85 +67,79 @@ const mockDIDRegistry: Record<string, DIDDocument> = {
   },
 }
 
-// Mock function to simulate XRPL transaction
-async function simulateXRPLTransaction(type: "issue" | "redeem", params: any): Promise<TransactionResult> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  // Generate mock transaction ID
-  const transactionId = `tx_${Math.random().toString(36).substring(2, 15)}`
-
-  console.log(`[XRPL Service] ${type} transaction:`, {
-    transactionId,
-    params,
-    timestamp: new Date().toISOString(),
-  })
-
-  return {
-    transactionId,
-    success: true,
-    message: `${type} transaction completed successfully`,
-  }
-}
+// Import XRPL client and utilities
+import { Client, Wallet, xrpToDrops, convertStringToHex } from 'xrpl'
+import type { Payment } from 'xrpl'
 
 // Issue health credits to a worker
 export async function issueHealthCredits(params: HealthCreditIssueParams): Promise<TransactionResult> {
   try {
-    // Verify issuer DID (mock)
-    const issuerDID = mockDIDRegistry[ISSUER_WALLET.address]
-    if (!issuerDID || !issuerDID.verified) {
-      throw new Error("Issuer not verified")
-    }
-
-    // In a real implementation, this would:
-    // 1. Connect to XRPL testnet
-    // 2. Create a token issuance transaction
-    // 3. Sign and submit the transaction
-    // 4. Wait for validation
-
-    const result = await simulateXRPLTransaction("issue", {
-      from: ISSUER_WALLET.address,
-      to: params.recipientAddress,
-      amount: params.amount,
-      memo: params.memo,
-      tokenType: "HealthCredit",
-    })
-
-    return result
+    const client = await getClient();
+    const issuerWallet = Wallet.fromSecret(ISSUER_WALLET.secret);
+    const transaction: Payment = {
+      TransactionType: "Payment",
+      Account: ISSUER_WALLET.address,
+      Destination: params.recipientAddress,
+      Amount: xrpToDrops(params.amount.toString()),
+      Memos: [
+        {
+          Memo: {
+            MemoData: convertStringToHex(params.memo || "Health Credit Issuance"),
+            MemoFormat: convertStringToHex("text/plain"),
+            MemoType: convertStringToHex("text/plain"),
+          },
+        },
+      ],
+    };
+    const signedTx = await client.submit(transaction, { wallet: issuerWallet });
+    const txHash = signedTx.result.tx_json.hash;
+    if (!txHash) throw new Error('Transaction hash not found in submission result');
+    const result = await client.request({ command: "tx", transaction: txHash });
+    const validated = result.result.validated ?? false;
+    return {
+      transactionId: txHash,
+      success: validated,
+      message: validated ? "Issuance transaction validated" : "Transaction failed",
+    };
   } catch (error) {
-    console.error("Failed to issue health credits:", error)
-    throw error
+    console.error("Failed to issue health credits:", error);
+    throw error;
   }
 }
 
 // Redeem health credits at a clinic
 export async function redeemHealthCredits(params: HealthCreditRedeemParams): Promise<TransactionResult> {
   try {
-    // Verify clinic DID (mock)
-    const clinicDID = mockDIDRegistry[CLINIC_WALLET.address]
-    if (!clinicDID || !clinicDID.verified) {
-      throw new Error("Clinic not verified")
-    }
-
-    // In a real implementation, this would:
-    // 1. Connect to XRPL testnet
-    // 2. Create a token redemption transaction
-    // 3. Transfer tokens from patient to clinic
-    // 4. Convert to RLUSD or burn tokens
-    // 5. Sign and submit the transaction
-
-    const result = await simulateXRPLTransaction("redeem", {
-      from: params.patientAddress,
-      to: CLINIC_WALLET.address,
-      amount: params.amount,
-      service: params.serviceDescription,
-      tokenType: "HealthCredit",
-    })
-
-    return result
+    const client = await getClient();
+    const clinicWallet = Wallet.fromSecret(CLINIC_WALLET.secret);
+    const transaction: Payment = {
+      TransactionType: "Payment",
+      Account: params.patientAddress,
+      Destination: CLINIC_WALLET.address,
+      Amount: xrpToDrops(params.amount.toString()),
+      Memos: [
+        {
+          Memo: {
+            MemoData: convertStringToHex(params.serviceDescription),
+            MemoFormat: convertStringToHex("text/plain"),
+            MemoType: convertStringToHex("text/plain"),
+          },
+        },
+      ],
+    };
+    const signedTx = await client.submit(transaction, { wallet: clinicWallet });
+    const txHash = signedTx.result.tx_json.hash;
+    if (!txHash) throw new Error('Transaction hash not found in submission result');
+    const result = await client.request({ command: "tx", transaction: txHash });
+    const validated = result.result.validated ?? false;
+    return {
+      transactionId: txHash,
+      success: validated,
+      message: validated ? "Redemption transaction validated" : "Transaction failed",
+    };
   } catch (error) {
-    console.error("Failed to redeem health credits:", error)
-    throw error
+    console.error("Failed to redeem health credits:", error);
+    throw error;
   }
 }
 
@@ -206,34 +210,9 @@ export async function getTransactionHistory(walletAddress: string): Promise<any[
   }
 }
 
-// Initialize XRPL connection (mock for MVP)
-export async function initializeXRPLClient(): Promise<any> {
-  // Mock XRPL client for demo purposes
-  const mockClient = {
-    connect: async () => {
-      console.log("[XRPL Service] Mock connection to XRPL testnet")
-      return Promise.resolve()
-    },
-    disconnect: async () => {
-      console.log("[XRPL Service] Mock disconnection from XRPL testnet")
-      return Promise.resolve()
-    },
-    isConnected: () => true,
-  }
-
-  try {
-    await mockClient.connect()
-    console.log("[XRPL Service] Connected to XRPL testnet (mock)")
-    return mockClient
-  } catch (error) {
-    console.error("Failed to connect to XRPL:", error)
-    throw error
-  }
-}
-
 // Export constants for use in other parts of the app
 export const XRPL_CONSTANTS = {
-  TESTNET_URL: XRPL_TESTNET_URL,
+  TESTNET_URL: XRPL_WS,
   EXPLORER_URL: "https://testnet.xrpl.org",
   FAUCET_URL: "https://xrpl.org/xrp-testnet-faucet.html",
 }
