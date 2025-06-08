@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { QrCode, ArrowRight, ExternalLink, Copy, CheckCircle2 } from "lucide-react"
-import { getWorkerBalance } from "@/lib/xrpl-service"
 import { DIDVerification } from "@/components/did-verification"
 
 export default function WorkerDashboard() {
@@ -24,8 +23,10 @@ export default function WorkerDashboard() {
   const refreshBalance = async () => {
     setRefreshing(true)
     try {
-      // Call the XRPL service to get the latest balance
-      await getWorkerBalance(walletAddress)
+      // TODO: Implement XRPL balance fetch here
+      // await getWorkerBalance(walletAddress)
+      // Demo: simulate balance refresh
+      await new Promise(resolve => setTimeout(resolve, 500))
       // Balance would be updated in a real app
     } catch (error) {
       console.error("Failed to refresh balance:", error)

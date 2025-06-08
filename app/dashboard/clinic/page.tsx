@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Users, QrCode, Search, CheckCircle2, AlertCircle, ArrowRight, ExternalLink } from "lucide-react"
-import { redeemHealthCredits } from "@/lib/xrpl-service"
 import { DIDVerification } from "@/components/did-verification"
 
 export default function ClinicDashboard() {
@@ -23,14 +22,9 @@ export default function ClinicDashboard() {
     setRedeeming(true)
 
     try {
-      // Call the XRPL service to redeem health credits
-      const result = await redeemHealthCredits({
-        patientAddress: "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe", // Example address
-        amount: 50,
-        serviceDescription: "General consultation",
-      })
-
-      setTransactionId(result.transactionId)
+      // TODO: Implement health credits redemption logic here
+      // const result = await redeemHealthCredits({ ... })
+      setTransactionId('demo-tx-id')
       setRedeemSuccess(true)
     } catch (error) {
       console.error("Failed to redeem credits:", error)
