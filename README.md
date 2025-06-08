@@ -5,9 +5,6 @@
 
 ![HealthPay Logo](public/logo.png)
 
-## 📱 Demo Video
-[![HealthPay Demo](https://github.com/user-attachments/assets/0349baa9-2dac-4f3d-919e-5f605c7db657)
-
 
 ## 🖥️ UI Screenshots
 
@@ -48,8 +45,8 @@ HealthPay implements a custom Health Coin (HEC) on the XRP Ledger with the follo
 ### Block Explorer
 View our testnet transactions: [HealthPay on XRPL Testnet](https://testnet.xrpl.org/accounts/rzZgrzU4GzbB6jNVHCq3NmufYpQWGW7Ci)
 
-## 🎥 Project Walkthrough
-[![Project Walkthrough](https://img.youtube.com/vi/YOUR_LOOM_VIDEO_ID/0.jpg)](https://www.loom.com/share/YOUR_LOOM_VIDEO_ID)
+## 🎥 Project Walkthrough / Demo
+[![Project Walkthrough](https://github.com/user-attachments/assets/0349baa9-2dac-4f3d-919e-5f605c7db657)
 
 In this video, we demonstrate:
 1. Project architecture and code structure
