@@ -48,14 +48,14 @@ export default function IssuerDashboard() {
         body: JSON.stringify({ action: "distribute", amount })
       });
       if (!res.ok) throw new Error("Transfer failed");
-      toast.success("Credits issued successfully");
+      toast.success("Credits distributed successfully");
       setAmount("");
       setMemo("");
       setSuccess(true);
       fetchBalance();
     } catch {
-      setError("Failed to issue credits. Please check the recipient address and try again.");
-      toast.error("Failed to issue credits");
+      setError("Failed to distribute credits. Please check the recipient address and try again.");
+      toast.error("Failed to distribute credits");
     } finally {
       setIssuingCredits(false)
     }
@@ -144,7 +144,7 @@ export default function IssuerDashboard() {
         <TabsContent value="issue" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Issue Health Credits</CardTitle>
+              <CardTitle>Distribute Health Credits</CardTitle>
               <CardDescription>
                 Send health credits to workers that can be redeemed at participating clinics.
               </CardDescription>
