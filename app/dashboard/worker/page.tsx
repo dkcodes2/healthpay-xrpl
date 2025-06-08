@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,10 +8,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { QrCode, ArrowRight, ExternalLink, Copy, CheckCircle2 } from "lucide-react"
 import { getWorkerBalance } from "@/lib/xrpl-service"
 import { DIDVerification } from "@/components/did-verification"
+import { toast } from "sonner"
+
+const BENEFICIARY = {
+  address: "rEmgtkaitKbrrTrobdaUKr7u4tsm4euTiR",
+  name: "Maria Worker",
+  role: "Beneficiary",
+  canSendTo: [{
+    address: "r3PQXDp5BJndbeKiiQGVcRAP6Mc7NF1kqk",
+    name: "City Health Clinic (Clinic)"
+  }],
+}
 
 export default function WorkerDashboard() {
   const [copied, setCopied] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [balance, setBalance] = useState("--")
+  const [loading, setLoading] = useState(false)
+  const [amount, setAmount] = useState("")
 
   const walletAddress = "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
 
@@ -34,6 +48,41 @@ export default function WorkerDashboard() {
     }
   }
 
+  const fetchBalance = async () => {
+    try {
+      const res = await fetch("/api/hec/balances")
+      const data = await res.json()
+      setBalance(data.balances.beneficiary ?? "--")
+    } catch {
+      setBalance("--")
+    }
+  }
+
+  useEffect(() => {
+    fetchBalance()
+    const interval = setInterval(fetchBalance, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleTransfer = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/hec/quick-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pay", amount })
+      })
+      if (!res.ok) throw new Error("Transfer failed")
+      toast.success("Transfer successful")
+      setAmount("")
+      fetchBalance()
+    } catch {
+      toast.error("Transfer failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-6">Worker Dashboard</h1>
@@ -46,8 +95,8 @@ export default function WorkerDashboard() {
           </CardHeader>
           <CardContent className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <div className="text-4xl font-bold">350 HC</div>
-              <p className="text-sm text-gray-500 mt-1">≈ $350 USD</p>
+              <div className="text-4xl font-bold">{balance} HEC</div>
+              <div className="text-xs text-gray-500">≈ ${balance} USD</div>
             </div>
             <Button onClick={refreshBalance} disabled={refreshing}>
               {refreshing ? "Refreshing..." : "Refresh Balance"}
@@ -62,7 +111,7 @@ export default function WorkerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-              <div className="font-mono text-sm truncate flex-1">{walletAddress}</div>
+              <div className="font-mono text-sm truncate flex-1">{BENEFICIARY.address}</div>
               <Button variant="ghost" size="icon" onClick={copyToClipboard} className="h-8 w-8">
                 {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
@@ -75,7 +124,7 @@ export default function WorkerDashboard() {
           </CardContent>
           <CardFooter>
             <Link
-              href={`https://testnet.xrpl.org/accounts/${walletAddress}`}
+              href={`https://testnet.xrpl.org/accounts/${BENEFICIARY.address}`}
               target="_blank"
               className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
@@ -147,7 +196,7 @@ export default function WorkerDashboard() {
                   <div>{new Date(2025, 5, 5).toLocaleDateString()}</div>
                   <div>Received</div>
                   <div>ABC Corp</div>
-                  <div className="text-green-600">+200 HC</div>
+                  <div className="text-green-600">+200 HEC</div>
                   <div>
                     <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                       Confirmed
@@ -159,7 +208,7 @@ export default function WorkerDashboard() {
                   <div>{new Date(2025, 5, 3).toLocaleDateString()}</div>
                   <div>Spent</div>
                   <div>City Health Clinic</div>
-                  <div className="text-red-600">-50 HC</div>
+                  <div className="text-red-600">-50 HEC</div>
                   <div>
                     <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                       Confirmed
@@ -171,7 +220,7 @@ export default function WorkerDashboard() {
                   <div>{new Date(2025, 5, 1).toLocaleDateString()}</div>
                   <div>Received</div>
                   <div>ABC Corp</div>
-                  <div className="text-green-600">+200 HC</div>
+                  <div className="text-green-600">+200 HEC</div>
                   <div>
                     <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                       Confirmed
@@ -215,6 +264,43 @@ export default function WorkerDashboard() {
           <DIDVerification />
         </TabsContent>
       </Tabs>
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Pay Clinic</h2>
+        <Card className="w-full">
+          <CardContent className="p-6">
+            <div className="mb-2 text-gray-500 text-xs break-all">{BENEFICIARY.address}</div>
+            <div className="mb-4 text-3xl font-bold">{balance} HEC</div>
+            <div className="text-xs text-gray-500">≈ ${balance} USD</div>
+            <div className="mb-2">
+              <label className="block mb-1 font-medium">Recipient</label>
+              <input
+                className="w-full border rounded px-3 py-2 bg-gray-100"
+                value={BENEFICIARY.canSendTo[0].name}
+                disabled
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Amount (HEC)</label>
+              <input
+                className="w-full border rounded px-3 py-2"
+                type="number"
+                min="1"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={loading || !amount}
+              onClick={handleTransfer}
+            >
+              {loading ? "Processing..." : "Pay Clinic"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
