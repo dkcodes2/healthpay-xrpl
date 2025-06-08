@@ -68,7 +68,7 @@ export default function Home() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Available Balance</span>
-                        <span className="text-2xl font-bold">500 HC</span>
+                        <span className="text-2xl font-bold">500 HEC</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm">Backed by</span>

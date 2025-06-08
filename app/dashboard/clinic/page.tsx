@@ -2,21 +2,29 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CreditCard, Users, QrCode, Search, CheckCircle2, AlertCircle, ArrowRight, ExternalLink } from "lucide-react"
+import { CreditCard, Users, QrCode, Search, CheckCircle2, AlertCircle, ArrowRight, ExternalLink, RefreshCw } from "lucide-react"
 import { redeemHealthCredits } from "@/lib/xrpl-service"
 import { DIDVerification } from "@/components/did-verification"
+
+const CLINIC = {
+  address: "r3PQXDp5BJndbeKiiQGVcRAP6Mc7NF1kqk",
+  name: "City Health Clinic",
+  role: "Clinic"
+};
 
 export default function ClinicDashboard() {
   const [redeeming, setRedeeming] = useState(false)
   const [redeemSuccess, setRedeemSuccess] = useState<boolean | null>(null)
   const [transactionId, setTransactionId] = useState("")
+  const [balance, setBalance] = useState("--")
+  const [loading, setLoading] = useState(false)
 
   const handleRedeemCredits = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,6 +48,25 @@ export default function ClinicDashboard() {
     }
   }
 
+  const fetchBalance = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/hec/balances")
+      const data = await res.json()
+      setBalance(data.balances.clinic ?? "--")
+    } catch {
+      setBalance("--")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchBalance()
+    const interval = setInterval(fetchBalance, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-6">Clinic Dashboard</h1>
@@ -51,7 +78,7 @@ export default function ClinicDashboard() {
             <CreditCard className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,250 HC</div>
+            <div className="text-2xl font-bold">1,250 HEC</div>
             <p className="text-xs text-gray-500">≈ $1,250 USD</p>
           </CardContent>
         </Card>
@@ -68,11 +95,19 @@ export default function ClinicDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Available for Withdrawal</CardTitle>
-            <CreditCard className="h-4 w-4 text-gray-500" />
+            <button
+                onClick={fetchBalance}
+                disabled={loading}
+                className="ml-2 p-1 rounded hover:bg-gray-100 focus:outline-none"
+                title="Refresh Balance"
+                aria-label="Refresh Balance"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">350 HC</div>
-            <p className="text-xs text-gray-500">≈ $350 USD</p>
+            <div className="text-2xl font-bold">{balance} HEC</div>
+            <p className="text-xs text-gray-500">≈ ${balance && !isNaN(Number(balance)) ? (parseFloat(balance) * 1).toFixed(2) : "0.00"} USD</p>
           </CardContent>
         </Card>
       </div>
@@ -103,9 +138,9 @@ export default function ClinicDashboard() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount (HC)</Label>
+                  <Label htmlFor="amount">Amount (HEC)</Label>
                   <Input id="amount" type="number" placeholder="50" defaultValue="50" />
-                  <p className="text-sm text-gray-500">1 HC = 1 USD</p>
+                  <p className="text-sm text-gray-500">1 HEC = 1 USD</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="service">Service Description</Label>
@@ -190,7 +225,7 @@ export default function ClinicDashboard() {
                     <div>PAT-{1000 + i}</div>
                     <div className="font-mono text-xs">rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe</div>
                     <div>{new Date(2025, 5, i).toLocaleDateString()}</div>
-                    <div>{i * 50} HC</div>
+                    <div>{i * 50} HEC</div>
                   </div>
                 ))}
               </div>
@@ -230,7 +265,7 @@ export default function ClinicDashboard() {
                     <div>{new Date(2025, 5, i).toLocaleDateString()}</div>
                     <div>PAT-{1000 + i}</div>
                     <div>General consultation</div>
-                    <div>{i * 50} HC</div>
+                    <div>{i * 50} HEC</div>
                     <div>
                       <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                         Confirmed
@@ -253,6 +288,8 @@ export default function ClinicDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+
     </div>
   )
 }
