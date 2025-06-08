@@ -8,13 +8,13 @@
 ## 🖥️ UI Screenshots
 
 ### Role-Based Dashboards
-![Issuer Dashboard](public/screenshots/issuer-dashboard.png)
+![Issuer Dashboard](public/issuer-dashboard.png)
 *Issuer dashboard for token governance and minting*
 
-![Worker Dashboard](public/screenshots/worker-dashboard.png)
+![Worker Dashboard](public/worker-dashboard.png)
 *Worker dashboard for healthcare service recipients*
 
-![Clinic Dashboard](public/screenshots/clinic-dashboard.png)
+![Clinic Dashboard](public/clinic-dashboard.png)
 *Clinic dashboard for healthcare service providers*
 
 ## 🔗 XRP Ledger Integration
