@@ -31,14 +31,9 @@ export default function ClinicDashboard() {
     setRedeeming(true)
 
     try {
-      // Call the XRPL service to redeem health credits
-      const result = await redeemHealthCredits({
-        patientAddress: "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe", // Example address
-        amount: 50,
-        serviceDescription: "General consultation",
-      })
-
-      setTransactionId(result.transactionId)
+      // TODO: Implement health credits redemption logic here
+      // const result = await redeemHealthCredits({ ... })
+      setTransactionId('demo-tx-id')
       setRedeemSuccess(true)
     } catch (error) {
       console.error("Failed to redeem credits:", error)

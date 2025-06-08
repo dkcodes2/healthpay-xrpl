@@ -11,21 +11,106 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Shield, ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Wallet } from 'xrpl'
+import { generateXrplDID } from '@/lib/xrpl-did-service'
 
 export default function Register() {
   const router = useRouter()
   const [userType, setUserType] = useState("issuer")
   const [loading, setLoading] = useState(false)
+  // Dynamic fields state
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    organization: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    // Worker
+    idNumber: '',
+    nationality: '',
+    birthDate: '',
+    // Issuer
+    orgRegNumber: '',
+    // Clinic
+    licenseNumber: '',
+    accreditation: '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.id]: e.target.value })
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-
-    // Simulate registration process
-    setTimeout(() => {
-      setLoading(false)
-      router.push("/login")
-    }, 1000)
+    // 1. Create XRPL wallet
+    const wallet = Wallet.generate()
+    // 2. Generate DID
+    const did = generateXrplDID(wallet.address, 'testnet')
+    // 3. Build DID Document with extra details
+    let credentialSubject: any = {
+      id: did,
+      name: form.firstName + ' ' + form.lastName,
+    }
+    if (userType === 'worker') {
+      credentialSubject = {
+        ...credentialSubject,
+        idNumber: form.idNumber,
+        nationality: form.nationality,
+        birthDate: form.birthDate,
+        employer: form.organization,
+      }
+    } else if (userType === 'issuer') {
+      credentialSubject = {
+        ...credentialSubject,
+        organization: form.organization,
+        orgRegNumber: form.orgRegNumber,
+      }
+    } else if (userType === 'clinic') {
+      credentialSubject = {
+        ...credentialSubject,
+        clinicName: form.organization,
+        licenseNumber: form.licenseNumber,
+        accreditation: form.accreditation,
+      }
+    }
+    const didDocument = {
+      '@context': ['https://www.w3.org/ns/did/v1'],
+      id: did,
+      controller: did,
+      verificationMethod: [
+        {
+          id: `${did}#master`,
+          type: 'Secp256k1VerificationKey2019',
+          controller: did,
+          publicKeyBase58: wallet.publicKey,
+        },
+      ],
+      authentication: [`${did}#master`],
+      assertionMethod: [`${did}#master`],
+      credentials: [
+        {
+          '@context': ['https://www.w3.org/2018/credentials/v1'],
+          type: ['VerifiableCredential', userType === 'worker' ? 'IdentityAttestation' : userType === 'issuer' ? 'OrganizationVerification' : 'MedicalLicense'],
+          issuer: did,
+          issuanceDate: new Date().toISOString(),
+          credentialSubject,
+          proof: {
+            type: 'JsonWebSignature2020',
+            created: new Date().toISOString(),
+            verificationMethod: `${did}#master`,
+            proofPurpose: 'assertionMethod',
+            jws: 'mock-proof',
+          },
+          status: 'valid',
+        },
+      ],
+    }
+    // For demo: log the DID Document (replace with actual storage/anchoring as needed)
+    console.log('DID Document:', didDocument)
+    setLoading(false)
+    router.push('/login')
   }
 
   return (
@@ -73,11 +158,11 @@ export default function Register() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First name</Label>
-                  <Input id="first-name" required />
+                  <Input id="firstName" required value={form.firstName} onChange={handleChange} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last-name">Last name</Label>
-                  <Input id="last-name" required />
+                  <Input id="lastName" required value={form.lastName} onChange={handleChange} />
                 </div>
               </div>
               <div className="space-y-2">
@@ -88,19 +173,54 @@ export default function Register() {
                       ? "Clinic Name"
                       : "Employer/Organization"}
                 </Label>
-                <Input id="organization" required />
+                <Input id="organization" required value={form.organization} onChange={handleChange} />
               </div>
+              {/* Dynamic fields based on userType */}
+              {userType === 'worker' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="idNumber">ID Number</Label>
+                    <Input id="idNumber" required value={form.idNumber} onChange={handleChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nationality">Nationality</Label>
+                    <Input id="nationality" required value={form.nationality} onChange={handleChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate">Birth Date</Label>
+                    <Input id="birthDate" type="date" required value={form.birthDate} onChange={handleChange} />
+                  </div>
+                </>
+              )}
+              {userType === 'issuer' && (
+                <div className="space-y-2">
+                  <Label htmlFor="orgRegNumber">Organization Registration Number</Label>
+                  <Input id="orgRegNumber" required value={form.orgRegNumber} onChange={handleChange} />
+                </div>
+              )}
+              {userType === 'clinic' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="licenseNumber">License Number</Label>
+                    <Input id="licenseNumber" required value={form.licenseNumber} onChange={handleChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="accreditation">Accreditation</Label>
+                    <Input id="accreditation" required value={form.accreditation} onChange={handleChange} />
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input id="email" type="email" placeholder="m@example.com" required value={form.email} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required />
+                <Input id="password" type="password" required value={form.password} onChange={handleChange} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
-                <Input id="confirm-password" type="password" required />
+                <Input id="confirmPassword" type="password" required value={form.confirmPassword} onChange={handleChange} />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">

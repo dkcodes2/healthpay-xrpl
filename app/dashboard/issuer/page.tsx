@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Users, PlusCircle, Search, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react"
-import { issueHealthCredits } from "@/lib/xrpl-service"
 import { DIDVerification } from "@/components/did-verification"
 import { toast } from "sonner"
 
@@ -139,6 +138,7 @@ export default function IssuerDashboard() {
           <TabsTrigger value="beneficiaries">Manage Beneficiaries</TabsTrigger>
           <TabsTrigger value="did">DID Verification</TabsTrigger>
           <TabsTrigger value="transactions">Transaction History</TabsTrigger>
+          <TabsTrigger value="issue-credential">Issue Credential</TabsTrigger>
         </TabsList>
 
         <TabsContent value="issue" className="space-y-4">
@@ -284,6 +284,72 @@ export default function IssuerDashboard() {
                 ))}
               </div>
             </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="issue-credential" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Issue Credential to Worker</CardTitle>
+              <CardDescription>
+                Issue a verifiable credential (e.g., Identity Attestation, Employment Verification) to a worker's DID on XRPL.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleIssueCredential} className="space-y-4">
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="workerAddress">Worker Wallet Address</Label>
+                  <Input id="workerAddress" name="workerAddress" required placeholder="rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="workerName">Worker Name</Label>
+                  <Input id="workerName" name="workerName" required placeholder="Full Name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="workerInfo">Additional Info</Label>
+                  <Input id="workerInfo" name="workerInfo" placeholder="e.g., nationality, ID number" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="credentialType">Credential Type</Label>
+                  <select id="credentialType" name="credentialType" className="border rounded px-2 py-1 w-full">
+                    <option value="IdentityAttestation">Identity Attestation</option>
+                    <option value="EmploymentVerification">Employment Verification</option>
+                    <option value="HealthCreditEligibility">Health Credit Eligibility</option>
+                  </select>
+                </div>
+                {credentialSuccess === true && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4 flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-green-900">Credential issued successfully</h4>
+                      <p className="text-green-700 text-sm mt-1">Transaction Hash: {credentialTxId}</p>
+                      <Link
+                        href={`https://testnet.xrpl.org/transactions/${credentialTxId}`}
+                        target="_blank"
+                        className="text-green-700 text-sm flex items-center gap-1 mt-2 hover:underline"
+                      >
+                        View on XRPL Explorer
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                {credentialSuccess === false && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-red-900">Failed to issue credential</h4>
+                      <p className="text-red-700 text-sm mt-1">Please check the worker address and try again.</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" disabled={credentialIssuing}>
+                  {credentialIssuing ? "Processing..." : "Issue Credential"}
+                </Button>
+              </CardFooter>
+            </form>
           </Card>
         </TabsContent>
       </Tabs>
