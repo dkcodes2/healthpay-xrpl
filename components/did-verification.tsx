@@ -7,33 +7,56 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, XCircle, Search, Shield, User, Building, Stethoscope } from "lucide-react"
-import { verifyDID } from "@/lib/xrpl-service"
+import { verifyDID } from '@/lib/did-service'
+import { sampleAddresses } from '@/lib/did-service'
+import { DIDDocument, VerifiableCredential } from '@/types/did'
 
-interface DIDDocument {
-  id: string
-  type: "issuer" | "worker" | "clinic"
-  verified: boolean
-  publicKey: string
+function getVerificationStatus(doc: DIDDocument | null): { status: string; color: string } {
+  if (!doc) return { status: 'No DID found', color: 'bg-gray-400' }
+  if (!doc.credentials || doc.credentials.length === 0) return { status: 'No credentials', color: 'bg-gray-400' }
+
+  // Worker scenarios
+  const hasIdentity = doc.credentials.some(c => c.type.includes('IdentityAttestation') && c.status === 'valid')
+  const hasHealth = doc.credentials.some(c => c.type.includes('HealthCreditEligibility') && c.status === 'valid')
+  const hasEmployment = doc.credentials.some(c => c.type.includes('EmploymentVerification') && c.status === 'valid')
+  const hasRevoked = doc.credentials.some(c => c.status === 'revoked')
+  const hasExpired = doc.credentials.some(c => c.status === 'expired')
+
+  if (hasRevoked) return { status: 'Revoked Credential', color: 'bg-red-500' }
+  if (hasExpired) return { status: 'Expired Credential', color: 'bg-yellow-500' }
+
+  if (hasIdentity && hasHealth && hasEmployment) return { status: 'Fully Verified Worker', color: 'bg-green-600' }
+  if (hasIdentity && hasHealth) return { status: 'Partially Verified Worker', color: 'bg-yellow-500' }
+  if (hasIdentity) return { status: 'Identity Verified Only', color: 'bg-blue-500' }
+
+  // Issuer
+  if (doc.credentials.some(c => c.type.includes('OrganizationVerification')) && doc.credentials.some(c => c.type.includes('HealthCreditIssuer'))) {
+    return { status: 'Verified Issuer', color: 'bg-green-600' }
+  }
+  // Clinic
+  if (doc.credentials.some(c => c.type.includes('OrganizationVerification')) && doc.credentials.some(c => c.type.includes('MedicalLicense'))) {
+    return { status: 'Verified Clinic', color: 'bg-green-600' }
+  }
+
+  return { status: 'Unverified', color: 'bg-gray-400' }
 }
 
 export function DIDVerification() {
-  const [walletAddress, setWalletAddress] = useState("")
-  const [didDocument, setDidDocument] = useState<DIDDocument | null>(null)
+  const [address, setAddress] = useState('')
+  const [didDoc, setDidDoc] = useState<DIDDocument | null>(null)
   const [loading, setLoading] = useState(false)
-  const [searched, setSearched] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleVerifyDID = async () => {
-    if (!walletAddress.trim()) return
-
+  const handleVerify = async (addr: string) => {
     setLoading(true)
-    setSearched(true)
-
+    setError('')
+    setDidDoc(null)
     try {
-      const result = await verifyDID(walletAddress.trim())
-      setDidDocument(result)
-    } catch (error) {
-      console.error("Failed to verify DID:", error)
-      setDidDocument(null)
+      const doc = await verifyDID(addr)
+      setDidDoc(doc as DIDDocument | null)
+      if (!doc) setError('No DID document found for this address.')
+    } catch (e: any) {
+      setError(e.message || 'Error verifying DID')
     } finally {
       setLoading(false)
     }
@@ -83,13 +106,13 @@ export function DIDVerification() {
             <Input
               id="wallet-address"
               placeholder="Enter XRPL wallet address (e.g., rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe)"
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleVerifyDID()}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleVerify(address)}
             />
           </div>
           <div className="flex items-end">
-            <Button onClick={handleVerifyDID} disabled={loading || !walletAddress.trim()}>
+            <Button onClick={() => handleVerify(address)} disabled={loading || !address}>
               {loading ? (
                 "Verifying..."
               ) : (
@@ -102,71 +125,40 @@ export function DIDVerification() {
           </div>
         </div>
 
-        {searched && (
-          <div className="mt-6">
-            {didDocument ? (
-              <div className="border rounded-lg p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">DID Document Found</h3>
-                  <Badge variant={didDocument.verified ? "default" : "destructive"} className="flex items-center gap-1">
-                    {didDocument.verified ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                    {didDocument.verified ? "Verified" : "Unverified"}
-                  </Badge>
-                </div>
+        {error && (
+          <div className="text-red-600 text-sm">{error}</div>
+        )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">DID</Label>
-                    <p className="font-mono text-sm">{didDocument.id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Type</Label>
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(didDocument.type)}
-                      <span className="text-sm">{getTypeLabel(didDocument.type)}</span>
+        {didDoc && (
+          <div className="border rounded p-4 bg-white shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`inline-block w-3 h-3 rounded-full ${getVerificationStatus(didDoc).color}`}></span>
+              <span className="font-semibold">{getVerificationStatus(didDoc).status}</span>
+            </div>
+            <div className="mb-2">
+              <span className="font-mono text-xs">{didDoc.id}</span>
+            </div>
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">Verification Methods:</span>
+              <pre className="bg-gray-50 rounded p-2 text-xs overflow-x-auto">{JSON.stringify(didDoc.verificationMethod, null, 2)}</pre>
+            </div>
+            {didDoc.credentials && didDoc.credentials.length > 0 && (
+              <div>
+                <div className="font-semibold mb-1">Credentials</div>
+                <div className="space-y-2">
+                  {didDoc.credentials.map((cred, i) => (
+                    <div key={i} className="border rounded p-2 bg-gray-50">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium text-xs">{cred.type.join(', ')}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${cred.status === 'valid' ? 'bg-green-200 text-green-800' : cred.status === 'revoked' ? 'bg-red-200 text-red-800' : cred.status === 'expired' ? 'bg-yellow-200 text-yellow-800' : 'bg-gray-200 text-gray-800'}`}>{cred.status || 'unknown'}</span>
+                      </div>
+                      <div className="text-xs text-gray-700">Issuer: {typeof cred.issuer === 'string' ? cred.issuer : cred.issuer.id}</div>
+                      <div className="text-xs text-gray-700">Issued: {cred.issuanceDate}</div>
+                      <div className="text-xs text-gray-700">Subject: {cred.credentialSubject && cred.credentialSubject.id}</div>
+                      <pre className="bg-gray-100 rounded p-2 text-xs overflow-x-auto mt-1">{JSON.stringify(cred.credentialSubject, null, 2)}</pre>
                     </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Public Key</Label>
-                    <p className="font-mono text-sm">{didDocument.publicKey}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Wallet Address</Label>
-                    <p className="font-mono text-sm break-all">{walletAddress}</p>
-                  </div>
+                  ))}
                 </div>
-
-                {didDocument.verified ? (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                    <div className="flex items-center gap-2 text-green-800">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="font-medium">Identity Verified</span>
-                    </div>
-                    <p className="text-green-700 text-sm mt-1">
-                      This {didDocument.type} is authorized to participate in the HealthPay network.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                    <div className="flex items-center gap-2 text-red-800">
-                      <XCircle className="h-4 w-4" />
-                      <span className="font-medium">Identity Not Verified</span>
-                    </div>
-                    <p className="text-red-700 text-sm mt-1">
-                      This address is not authorized to participate in the HealthPay network.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <XCircle className="h-4 w-4" />
-                  <span className="font-medium">No DID Found</span>
-                </div>
-                <p className="text-gray-500 text-sm mt-1">
-                  No decentralized identity document found for this wallet address.
-                </p>
               </div>
             )}
           </div>
@@ -175,42 +167,24 @@ export function DIDVerification() {
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <h4 className="font-medium text-blue-900 mb-2">Try These Sample Addresses:</h4>
           <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-blue-700">Verified Worker:</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWalletAddress("rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe")}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-blue-700">Unverified Worker:</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWalletAddress("rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH")}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-blue-700">Verified Issuer:</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setWalletAddress("rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh")}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh
-              </Button>
-            </div>
+            {Object.entries(sampleAddresses).map(([label, addr]) => (
+              <div key={String(addr)} className="flex items-center justify-between">
+                <span className="text-blue-700">{label.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setAddress(String(addr)); handleVerify(String(addr)); }}
+                  className="text-blue-600 hover:text-blue-800"
+                  disabled={loading}
+                >
+                  {loading ? 'Verifying...' : 'Verify'}
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
     </Card>
   )
 }
+
