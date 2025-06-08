@@ -34,7 +34,9 @@ export async function getClient(): Promise<Client> {
 }
 
 // Change RLUSD_HEX to USDTEST_CODE for testing
-const RLUSD_HEX = '524C555344000000000000000000000000000000'; // 'USDTEST' in 20-byte hex
+// const RLUSD_HEX = '524C555344000000000000000000000000000000'; // 'RLUSD' in 20-byte hex
+const RLUSD_HEX = '5553445445535400000000000000000000000000'; // 'USDTEST' in 20-byte hex used as we could not get rlusd to work for transfer from beneficiary to clinic
+
 
 // Mock wallet addresses for demo
 const ISSUER_WALLET = {
