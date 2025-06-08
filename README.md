@@ -9,7 +9,7 @@
 
 ### Role-Based Dashboards
 
-![Issuer Dashboard](public/issuer-dashboard.png)
+![Distributor Dashboard](public/distributor-dashboard.png)
 *Issuer dashboard for token governance and minting*
 
 ![Worker Dashboard](public/worker-dashboard.png)
